@@ -21,6 +21,18 @@ def random_str():
     return s
 
 
+def random_num():
+    """
+    生成一个随机的数字
+    """
+    seed = '0123456789'
+
+    s = ''
+    for i in range(6):
+        random_index = random.randint(0, len(seed) - 1)
+        s += seed[random_index]
+    return s
+
 
 from datetime import datetime
 
@@ -67,3 +79,8 @@ def salted_password(password, salt='$!@><?>HUI&DWQa`'):
     hash2 = hashed_pwd(hash1 + salt)
     return hash2
 
+
+
+"""
+发送邮件
+"""

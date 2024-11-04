@@ -57,7 +57,12 @@ class Article(Base):
 
         try:        
             result = db_session.query(Article, User.nickname).join(User, User.id == Article.user_id).filter(Article.topic == topic, Article.is_drafted == 1).order_by(Article.browse_num.desc()).limit(page_size).offset(start).all()
-            return {'code': ErrNo.OK.value, 'message': 'success', 'data': result}
+            
+            resp = []
+            for item in result:
+                resp.append(item[0].to_dict())
+            
+            return {'code': ErrNo.OK.value, 'message': 'success', 'data': resp}
         except exc.SQLAlchemyError as e:
             logger.error('query_latest_article_by_page error, {}'.format(e))
             return {'code': ErrNo.DATABASE_ERROR.value, 'message': 'database error'}
@@ -74,7 +79,12 @@ class Article(Base):
 
         try:        
             result = db_session.query(Article, User.nickname).join(User, User.id == Article.user_id).filter(Article.topic == topic, Article.is_drafted == 1).order_by(Article.created_at.desc()).limit(page_size).offset(start).all()
-            return {'code': ErrNo.OK.value, 'message': 'success', 'data': result}
+            
+            resp = []
+            for item in result:
+                resp.append(item[0].to_dict())
+            
+            return {'code': ErrNo.OK.value, 'message': 'success', 'data': resp}
         except exc.SQLAlchemyError as e:
             logger.error('query_recommend_article_by_page error, {}'.format(e))
             return {'code': ErrNo.DATABASE_ERROR.value, 'message': 'database error'}
@@ -93,7 +103,12 @@ class Article(Base):
 
         try:        
             result = db_session.query(Article, User.nickname).join(User, User.id == Article.user_id).filter(condition_1, Article.is_drafted == 1).order_by(Article.browse_num.desc()).limit(page_size).offset(start).all()
-            return {'code': ErrNo.OK.value, 'message': 'success', 'data': result}
+            
+            resp = []
+            for item in result:
+                resp.append(item[0].to_dict())
+            
+            return {'code': ErrNo.OK.value, 'message': 'success', 'data': resp}
         except exc.SQLAlchemyError as e:
             logger.error('query_article_by_field error, {}'.format(e))
             return {'code': ErrNo.DATABASE_ERROR.value, 'message': 'database error'}
@@ -103,6 +118,8 @@ class Article(Base):
     def mod_browse_num(cls, article_id, num):
         """
         文章浏览量, ++
+        
+        UPDATE `article` SET `browse_num` = '100' WHERE `id` = 24;
         """
         pass
     
@@ -149,7 +166,7 @@ class Article(Base):
             'test': '测试',
             'ai': '人工智能',
             'rag': '大模型',
-        }
+        }  
         
         return {
             'id': self.id,
@@ -157,6 +174,7 @@ class Article(Base):
             '标题': self.title,
             '内容': self.content,
             '浏览量': self.browse_num,
+            '标签': self.tag.split(','),
             '草稿': is_drafted,
             '原创': is_original,
             '创建日期': self.created_at.strftime("%Y-%m-%d %H:%M:%S"),

@@ -1,8 +1,9 @@
 
 from flask import (
-    Blueprint, request, render_template
+    Blueprint, request, render_template, session, jsonify
 )
 from utils.log import logger
+from utils.common import random_num
 # from models.user import UserInfo
 
 import json
@@ -75,6 +76,17 @@ main = Blueprint('user', __name__)
 #         return '数据库繁忙'
 
 
+# 获取验证码 <邮箱替代短信>
+@main.route("/sms-code", methods=['GET'])
+def send_sms():
+    logger.info('访问 sms-code 页面')
+    
+    code = random_num()
+    session['code'] = code
+    
+    logger.info('验证码: {}'.format(code))
+
+    return jsonify(code=code)    
 
 
 

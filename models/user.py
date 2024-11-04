@@ -145,16 +145,17 @@ class User(Base):
         
         
     def to_dict(self):
+        
         return {
             'id': self.id,
-            'nickname': self.nickname,
-            'email': self.email,
-            'password': '******',
-            'about_me': self.about_me,
-            'avatar': self.avatar,
-            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-            'updated_at': self.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
-            'deleted_at': self.deleted_at.strftime('%Y-%m-%d %H:%M:%S') if self.deleted_at is not None else None,
+            '昵称': self.nickname,
+            '邮箱': self.email,
+            '密码': '******',
+            '自我介绍': self.about_me,
+            '头像': self.avatar,
+            '创建时间': self.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            '更新时间': self.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
+            '删除时间': self.deleted_at.strftime('%Y-%m-%d %H:%M:%S') if self.deleted_at is not None else None,
         }    
     
     
