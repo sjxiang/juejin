@@ -1,3 +1,0 @@
-17:12:24 访问 index
-docker exec -it db sh
-mysql --host=127.0.0.1 --port=3306 --user=root --password=my-secret-pw
