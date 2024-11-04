@@ -130,19 +130,18 @@ class User(Base):
         """
         修改密码
         """
-        try:
-            result = db_session.query(User).filter_by(id = user_id).one_or_none()
+        result = db_session.query(User).filter_by(id = user_id).one_or_none()
             
-            if result is None:
-                return {'code': ErrNo.DATABASE_RECORD_NOT_FOUND.value, 'message': 'record not exists'}
-            else:        
+        if result is not None:
+            try:
                 result.password = new_password
                 db_session.commit()
                 return {'code': ErrNo.OK.value,'message':'success'}
-
-        except exc.SQLAlchemyError as e:
-            logger.error('mod_password error, {}'.format(e))
-            return {'code': ErrNo.DATABASE_ERROR.value,'message': 'database error'}
+            except exc.SQLAlchemyError as e:
+                logger.error('mod_password error, {}'.format(e))
+                return {'code': ErrNo.DATABASE_ERROR.value,'message': 'database error'}
+        else:
+            return {'code': ErrNo.DATABASE_RECORD_NOT_FOUND.value, 'message': 'record not exists'}
         
         
     def to_dict(self):

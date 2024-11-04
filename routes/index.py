@@ -56,7 +56,7 @@ def index():
 
 
 # 对应前端显示分类的字典
-label_types = {
+label = {
     "recommend":{"name":"推荐","selected":"selected"},
     "auto_test":{"name":"自动化测试","selected":"no-selected"},
     "python":{"name":"Python","selected":"no-selected"},
