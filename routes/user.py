@@ -3,8 +3,9 @@ from flask import (
     Blueprint, request, render_template, session, jsonify
 )
 from utils.log import logger
-from utils.common import random_num
-# from models.user import UserInfo
+from utils.errno import ErrNo 
+from utils.common import captcha_code, send_email, random_str
+# from models.user import User
 
 import json
 import re
@@ -76,18 +77,38 @@ main = Blueprint('user', __name__)
 #         return '数据库繁忙'
 
 
-# 获取验证码 <邮箱替代短信>
-@main.route("/sms-code", methods=['GET'])
-def send_sms():
-    logger.info('访问 sms-code 页面')
+# 获取图形验证码
+@main.route("/captcha-code", methods=['GET'])
+def captcha_code():
+    logger.info('访问 captcha-code 页面')
     
-    code = random_num()
-    session['code'] = code
+    cc = captcha_code()
+    session['cc'] = cc
     
-    logger.info('验证码: {}'.format(code))
+    logger.info('图形验证码: {}'.format(cc))
 
-    return jsonify(code=code)    
+    return jsonify(code=cc)    
 
+
+# 获取短信验证码 <邮箱替代短信>
+@main.route("/sms-code", methods=['POST'])
+def sms_code():
+    to_email = json.loads(request.data).get("email")
+    
+    # 简单的邮箱格式验证
+    if not re.match(".+@.+\..+", to_email):
+        return {"code": ErrNo.PARAMS_INVALID, "message": "邮箱格式错误"}
+    
+    # 生成邮箱验证码的随机字符串
+    cc = random_str()
+    
+    # 将邮箱验证码存入session
+    session['sc'] = cc
+    
+    # 发送邮件
+    logger.info('邮箱验证码: {}'.format(cc))
+    response = send_email(to_email, "注册", cc)
+    return response
 
 
 @main.route("/login", methods=['GET', 'POST'])
@@ -102,6 +123,9 @@ def login():
 @main.route("/register", methods=['POST'])
 def register():
     pass
+
+
+
 
     # request_data = json.loads(request.data)
     
@@ -182,14 +206,16 @@ def register():
 #     else:
 #         return response_message.UserMessage.error("用户名或者是密码错误")
 
-# # 注销功能的实现
-# @user.route("/logout")
-# def logout():
-#     # 清空session
-#     session.clear()
-#     response = make_response("注销并进行重定向", 302)
-#     # 这里的url_for写的不是一个url地址,而是我们的控制器的模块名称.函数名称，然后映射到这个控制器处理函数的地址上
-#     response.headers["Location"] = url_for("index.home")
-#     # 清除掉cookie
-#     response.delete_cookie("username")
-#     return response
+
+# 注销
+@main.route("/logout")
+def logout():
+    # 清空 session
+    session.clear()
+    
+    # response = make_response("注销并进行重定向", 302)
+    # # 这里的url_for写的不是一个url地址,而是我们的控制器的模块名称.函数名称，然后映射到这个控制器处理函数的地址上
+    # response.headers["Location"] = url_for("index.home")
+    # # 清除掉cookie
+    # response.delete_cookie("username")
+    # return response

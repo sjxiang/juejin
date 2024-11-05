@@ -16,7 +16,11 @@ db_session, Base, engine = db_connect()
 class Article(Base):
     __table__ = Table("article", Base.metadata, autoload_with=engine)
 
+    @classmethod
+    def batch_add_article(cls, **kwargs):
+        pass
     
+        
     @classmethod
     def add_article(cls, topic, title, content, tag, user_id):
         """
@@ -28,13 +32,21 @@ class Article(Base):
             ('fe', 'vue', 'more...', 'fe,interview', 2333, 0, 0, 0, '2023-05-24 15:23:54', '2023-05-24 15:23:54', 0);
         
         """
+        record = cls(
+                    topic=topic, 
+                    title=title, 
+                    content=content, 
+                    tag=tag, 
+                    browse_num=0,
+                    user_id=user_id, 
+                    is_drafted=0, 
+                    is_original=0, 
+                    created_at=datetime.now(), 
+                    updated_at=datetime.now(), 
+                    status=0,
+                )
         try:
-            db_session.add(cls(topic=topic, title=title, 
-                    content=content, tag=tag, browse_num=0,
-                    user_id=user_id, is_drafted=0, is_original=0, 
-                    created_at=datetime.now(), updated_at=datetime.now(), status=0,
-                ))
-
+            db_session.add(record)
             db_session.commit()
             return {'code': ErrNo.OK.value,'message':'success'}    
         except exc.SQLAlchemyError as e:
@@ -43,26 +55,30 @@ class Article(Base):
         
     
     @classmethod
-    def query_recommend_article_by_page(cls, page, topic):
+    def query_recommend_article_by_page(cls, page_num, topic):
         """
         分页查询<推荐>文章, 但是不要草稿
-
-        page, 页数
-        page_size, 每页显示的文章数量, 默认10条
-        topic, 话题
         """
         
+        # 当前第几页, 默认第1页
+        page_num = int(page_num)
+        # 每页显示多少条记录
         page_size = 10
-        start = (page - 1) * page_size
-
+        # 总的记录数
+        total_count = db_session.query(Article).count()
+        # 一共有多少页
+        total_pages = (total_count + page_size - 1) // page_size
+        
+        skip = (page_num - 1) * page_size
+        
         try:        
-            result = db_session.query(Article, User.nickname).join(User, User.id == Article.user_id).filter(Article.topic == topic, Article.is_drafted == 1).order_by(Article.browse_num.desc()).limit(page_size).offset(start).all()
+            result = db_session.query(Article, User.nickname).join(User, User.id == Article.user_id).filter(Article.topic == topic, Article.is_drafted == 1).order_by(Article.browse_num.desc()).limit(page_size).offset(skip).all()
             
             resp = []
             for item in result:
                 resp.append(item[0].to_dict())
             
-            return {'code': ErrNo.OK.value, 'message': 'success', 'data': resp}
+            return {'code': ErrNo.OK.value, 'message': 'success',  'total_count': total_count, 'total_pages': total_pages, 'data': resp}
         except exc.SQLAlchemyError as e:
             logger.error('query_latest_article_by_page error, {}'.format(e))
             return {'code': ErrNo.DATABASE_ERROR.value, 'message': 'database error'}
@@ -73,8 +89,10 @@ class Article(Base):
         """
         分页查询<最新>文章, 但是不要草稿
         """
-        
+        page_num = int(page_num)
         page_size = 10
+        total_count = db_session.query(Article).count()
+        total_pages = (total_count + page_size - 1) // page_size
         start = (page - 1) * page_size
 
         try:        
@@ -83,32 +101,34 @@ class Article(Base):
             resp = []
             for item in result:
                 resp.append(item[0].to_dict())
-            
-            return {'code': ErrNo.OK.value, 'message': 'success', 'data': resp}
+            return {'code': ErrNo.OK.value, 'message': 'success',  'total_count': total_count, 'total_pages': total_pages, 'data': resp}
         except exc.SQLAlchemyError as e:
             logger.error('query_recommend_article_by_page error, {}'.format(e))
             return {'code': ErrNo.DATABASE_ERROR.value, 'message': 'database error'}
         
 
     @classmethod
-    def query_article_by_field(cls, page, keyword):
-
+    def query_article_by_field(cls, page_num, keyword):
         """
         根据关键词, 分页查询文章, 但是不要草稿
         """
+        
+        page_num = int(page_num)
         page_size = 10
-        start = (page - 1) * page_size
+        total_count = db_session.query(Article).count()
+        total_pages = (total_count + page_size - 1) // page_size
+        skip = (page_num - 1) * page_size
         
         condition_1 = or_(Article.title.like("%"+keyword+"%"), Article.content.like("%"+keyword+"%"))
 
         try:        
-            result = db_session.query(Article, User.nickname).join(User, User.id == Article.user_id).filter(condition_1, Article.is_drafted == 1).order_by(Article.browse_num.desc()).limit(page_size).offset(start).all()
+            result = db_session.query(Article, User.nickname).join(User, User.id == Article.user_id).filter(condition_1, Article.is_drafted == 1).order_by(Article.browse_num.desc()).limit(page_size).offset(skip).all()
             
             resp = []
             for item in result:
                 resp.append(item[0].to_dict())
             
-            return {'code': ErrNo.OK.value, 'message': 'success', 'data': resp}
+            return {'code': ErrNo.OK.value, 'message': 'success',  'total_count': total_count, 'total_pages': total_pages, 'data': resp}
         except exc.SQLAlchemyError as e:
             logger.error('query_article_by_field error, {}'.format(e))
             return {'code': ErrNo.DATABASE_ERROR.value, 'message': 'database error'}
@@ -181,4 +201,4 @@ class Article(Base):
             '更新日期': self.updated_at.strftime("%Y-%m-%d %H:%M:%S"),
         }    
         
-        
+                                                                                                                                                                                                                                                                                                                                                                     

@@ -9,7 +9,7 @@ main = Blueprint('index', __name__)
 
 
 # '127.0.0.1:9000/index?page=1&type=latest&topic=fe'
-@main.route("/index")
+@main.route("/index", methods=['GET'])
 def index():
     logger.info('访问 index 页面')
     
@@ -22,6 +22,7 @@ def index():
     
     if raw_page is None or (page < 1):
         page = 1
+    
     if topic is None:
         topic = 'fe'
     if type is None:
@@ -37,7 +38,7 @@ def index():
 
 
 # '127.0.0.1:9000/search?page=1&keyword=vue'
-@main.route("/search")
+@main.route("/search", methods=['GET'])
 def search():
     
     logger.info('访问 search 页面')

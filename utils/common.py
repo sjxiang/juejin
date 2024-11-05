@@ -21,17 +21,17 @@ def random_str():
     return s
 
 
-def random_num():
-    """
-    生成一个随机的数字
-    """
-    seed = '0123456789'
+import random
+import string
 
-    s = ''
-    for i in range(6):
-        random_index = random.randint(0, len(seed) - 1)
-        s += seed[random_index]
-    return s
+def captcha_code():
+    # abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789
+    seed = string.ascii_letters + string.digits
+    # 取样
+    sample = random.sample(seed, 6)
+    # 拼接字符串
+    return ''.join(sample).lower()
+
 
 
 from datetime import datetime
@@ -84,3 +84,45 @@ def salted_password(password, salt='$!@><?>HUI&DWQa`'):
 """
 发送邮件
 """
+
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from log import logger
+from errno import ErrNo
+
+ 
+def send_email(to_email, subject, cc):
+    """
+    注册
+    更改密码
+    登录
+    """
+    from_email = ''
+    license = ''  # 授权码
+    content = "验证码：{}".format(cc)
+
+    msg = MIMEMultipart()
+    msg["Subject"] = subject
+    msg["From"] = from_email
+    msg["To"] = to_email
+
+    # 发送邮件正文，html格式的
+    # msg.attach(MIMEText(content, "html", "utf-8"))    
+    # 发送邮件正文，text格式的
+    msg.attach(MIMEText(content, 'plain', 'utf-8'))
+        
+    try:
+        m = smtplib.SMTP_SSL("smtp.qq.com", 465) # 邮箱服务器及端口号
+                
+        m.login(from_email, license)
+        m.sendmail(from_email, to_email, msg.as_string())
+        m.close()        
+        return {"code": ErrNo.OK, "message": "邮件发送成功"}
+    except Exception as e:
+        logger.error("邮件发送失败, {}".format(e))
+        return {"code": ErrNo.SEND_EMAIL_ERROR, "message": "邮件发送失败"}
+    finally:
+        m.close()
+
+

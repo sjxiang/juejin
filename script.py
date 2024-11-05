@@ -27,16 +27,13 @@ def test_find_user():
     
     response = User.query_user_by_email(email)
     
-    data = response.get('data')
-    code = response['code']
-    msg = response['message']
-    
-    if code == 0:
-        logger.info("查找用户成功, {}".format(data.to_dict()))
-    elif code == 20001:
-        logger.info("查找用户失败, {}".format(msg))
+    if response.get('code') == 0:
+        record = response.get('data')
+        logger.info("查找用户成功, {}".format(record.to_dict()))
+    elif response.get('code') == 20001:
+        logger.info("查找用户失败, {}".format(response['message']))
     else:
-        logger.info("查找用户失败, {}".format(msg))
+        logger.info("查找用户失败, {}".format(response['message']))
 
 
 def test_find_latest_article():
@@ -124,8 +121,8 @@ def test_mod_drafted():
     article_id = 24
 
     response = Article.mod_drafted(article_id)
-
-    if response['code'] == 0:
+    
+    if response.get('code') == 0:
         logger.info("修改文章状态, 成功")
     else:
         logger.info("修改文章状态, 失败, {}", response['message'])
@@ -143,4 +140,3 @@ def test_script():
 
 if __name__ == '__main__':
     test_script()    
-
