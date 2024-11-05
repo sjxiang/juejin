@@ -24,7 +24,7 @@ def random_str():
 import random
 import string
 
-def captcha_code():
+def random_code():
     # abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789
     seed = string.ascii_letters + string.digits
     # 取样
@@ -88,8 +88,8 @@ def salted_password(password, salt='$!@><?>HUI&DWQa`'):
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from log import logger
-from errno import ErrNo
+from utils.log import logger
+from utils.errno import ErrNo
 
  
 def send_email(to_email, subject, cc):

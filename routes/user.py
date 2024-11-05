@@ -4,7 +4,7 @@ from flask import (
 )
 from utils.log import logger
 from utils.errno import ErrNo 
-from utils.common import captcha_code, send_email, random_str
+from utils.common import random_code, send_email, random_str
 # from models.user import User
 
 import json
@@ -82,12 +82,14 @@ main = Blueprint('user', __name__)
 def captcha_code():
     logger.info('访问 captcha-code 页面')
     
-    cc = captcha_code()
+    cc = random_code()
     session['cc'] = cc
     
     logger.info('图形验证码: {}'.format(cc))
 
-    return jsonify(code=cc)    
+    return render_template("email.html", cc=cc)   
+
+
 
 
 # 获取短信验证码 <邮箱替代短信>
