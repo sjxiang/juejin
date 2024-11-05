@@ -126,3 +126,20 @@ def send_email(to_email, subject, cc):
         m.close()
 
 
+import re
+
+
+def validate_password(password):
+    """
+    验证密码是否符合要求：8-16位的英文字母、数字、字符组合（不能是纯数字）
+    :param password: 要验证的密码字符串
+    :return: 如果密码符合要求返回 True，否则返回 False
+    """
+    pattern = re.compile(r'^(?![0-9]+$)(?![a-zA-Z]+$)[0-9a-zA-Z!@#$%^&*()_+-=]{8,16}$')
+    if re.match(pattern, password):
+        return True
+    return False
+
+
+if __name__ == '__main__':
+    test_validate_password()

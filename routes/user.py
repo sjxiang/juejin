@@ -4,8 +4,10 @@ from flask import (
 )
 from utils.log import logger
 from utils.errno import ErrNo 
-from utils.common import random_code, send_email, random_str
-# from models.user import User
+from utils.common import random_code, send_email, random_str, validate_password, hashed_password
+from models.user import User
+from utils.serializer import HttpCode
+
 
 import json
 import re
@@ -14,81 +16,17 @@ import re
 main = Blueprint('user', __name__)
 
 
-    # 填写原密码
-    # 填写新密码
-    # 再次填写确认
-    
-    # 密码必须是 8-16 位的英文字母、数字、字符组合(不能是纯数字)
-    
-
-# if PublicAdminController.check_phone_num(userInfo.user_id):
-#     if len(userInfo.user_id) == 0 or len(userInfo.password) == 0:
-#         return {"code": ErrorCode.USERID_OR_PASSWORD_ERROR.value, "message": "用户名或密码不能为空"}
-#     else:
-#         response = UserAdminCrud.query_user_by_userid(userInfo.user_id, db)
-#         if response.get('code') == 0:
-#             data = response.get('data')
-#             if data is not None:
-#                 return {"code": ErrorCode.USERID_ALREADY_EXISTS.value, "message": "用户名已存在"}
-#             else:
-#                 userInfo.password = get_password_hash(userInfo.password)
-#                 return UserAdminCrud.add_user(userInfo, db)
-#         else:
-#             return response
-# else:
-#     return {"code": ErrorCode.USERID_NOT_INVALID.value, "message": "用户名不合法，格式为手机号"}
-
-# import json
-# import re
-# from utils.log import hashed_password
-# from models.user import User
-
-
-# @main.route("/register",methods=["post"])
-# def register():
-#     request_data = json.loads(request.data)
-    
-#     email = request_data.get("email")
-#     password = request_data.get("password")
-#     confirmed_password = request_data.get("confirmed_password")
-    
-#     print(email, password, confirmed_password)
-
-#     # 数据校验
-#     if not re.match(".+@.+\..+", email):
-#         return '无效邮箱'
-#     if len(password) < 6:
-#         return '密码太短'
-#     if password != confirmed_password:
-#         return '两次密码不一致'
-    
-    
-#     if User.find_one_by_email(input_email=email) is not None:
-#         return '用户已存在'
-    
-#     new_user = {
-#         "email":    email,
-#         "nickname": email.split("@")[0],
-#         "password": hashed_password(password)
-#     }
-#     if User.create(**new_user) is not None:
-#         return '用户注册成功'
-#     else:
-#         return '数据库繁忙'
-
-
 # 获取图形验证码
 @main.route("/captcha-code", methods=['GET'])
 def captcha_code():
     logger.info('访问 captcha-code 页面')
     
     cc = random_code()
-    session['cc'] = cc
+    session['captcha_code'] = cc
     
     logger.info('图形验证码: {}'.format(cc))
 
     return render_template("email.html", cc=cc)   
-
 
 
 
@@ -99,6 +37,7 @@ def sms_code():
     
     # 简单的邮箱格式验证
     if not re.match(".+@.+\..+", to_email):
+        
         return {"code": ErrNo.PARAMS_INVALID, "message": "邮箱格式错误"}
     
     # 生成邮箱验证码的随机字符串
@@ -113,6 +52,7 @@ def sms_code():
     return response
 
 
+
 @main.route("/login", methods=['GET', 'POST'])
 def login():
     if request.method == 'GET':
@@ -124,62 +64,39 @@ def login():
 
 @main.route("/register", methods=['POST'])
 def register():
-    pass
-
-
-
-
-    # request_data = json.loads(request.data)
+    data = request.form
     
-    # email = request_data.get("email")
-    # password = request_data.get("password")
-    # confirmed_password = request_data.get("confirmed_password")
+    email = data.get("email")
+    password = data.get("password")
+    confirmed_password = data.get("confirmed_password")
+    captcha_code = data.get("captcha_code")
+
+    print('到这里')
     
-        
-    # # 数据校验
-    # if not re.match(".+@.+\..+", email):
-    #     return '无效邮箱'
-    # if len(password) < 6:
-    #     return '密码太短'
-    # if password != confirmed_password:
-    #     return '两次密码不一致'
-    
-   
-    # if User.find_one_by_email(email=email) is not None:
-    #     return '用户已存在'
-    
-    # new_user = {
-    #     "email":    email,
-    #     "nickname": email.split("@")[0],
-    #     "password": hashed_password(password)
-    # }
-    # if User.create(new_user) is not None:
-    #     return '用户注册成功'
+    if not re.match(".+@.+\..+", email):
+        return {"code": ErrNo.PARAMS_INVALID, "message": "邮箱格式错误"}    
+    if email is None or password is None:
+        return {"code": ErrNo.PARAMS_INVALID, "message": "用户名或密码不能为空"}
+    if password != confirmed_password:
+        return {"code": ErrNo.PARAMS_INVALID, "message": "两次密码不一致"}
+    if captcha_code!= session.get("cc"):
+        return {"code": ErrNo.PARAMS_INVALID, "message": "验证码错误"}
+    if validate_password(password):
+        return {"code": ErrNo.PARAMS_INVALID, "message": "密码不合格,  密码必须是 8-16 位的英文字母、数字、字符组合(不能是纯数字)"}
 
 
-# @user.route("/reg",methods=["post"])
-# def register():
-#     request_data = json.loads(request.data)
-#     username = request_data.get("username")
-#     password = request_data.get("password")
-#     second_password = request_data.get("second_password")
-#     ecode = request_data.get("ecode")
-#     # 数据验证
-#     if ecode.lower() != session.get("ecode"):
-#         return response_message.UserMessage.error("邮箱验证码错误")
-#     if not re.match(".+@.+\..+",username):
-#         return response_message.UserMessage.other("无效邮箱")
-#     if len(password) < 6:
-#         return response_message.UserMessage.error("密码不合格")
-#     if password != second_password:
-#         return response_message.UserMessage.error("两次密码不一致")
-#     user = User()
-#     if user.find_dy_suername(username=username) is not None:
-#         return response_message.UserMessage.error("用户已存在")
-#     # 实现注册的功能了
-#     password = hashlib.md5(password.encode()).hexdigest()
-#     result = user.bo_register(username,password)
-#     return response_message.UserMessage.success("用户注册成功")
+    if User.query_user_by_email(email=email) is not None:
+        return {"code": ErrNo.RECORD_ALREADY_EXISTS, "message": "用户已存在"}
+    
+    new_user = {
+        "email": email,
+        "nickname": email.split("@")[0],
+        "password": hashed_password(password)
+    }
+    return User.new(**new_user)
+
+
+
 
 # @user.route("/login",methods=["post"])
 # def login():
@@ -209,6 +126,8 @@ def register():
 #         return response_message.UserMessage.error("用户名或者是密码错误")
 
 
+
+
 # 注销
 @main.route("/logout")
 def logout():
@@ -221,3 +140,15 @@ def logout():
     # # 清除掉cookie
     # response.delete_cookie("username")
     # return response
+
+
+@main.route("/reset-password", methods=['POST'])
+def reset_password():
+    
+    # 填写原密码
+    # 填写新密码
+    # 再次填写确认
+    # 密码必须是 8-16 位的英文字母、数字、字符组合(不能是纯数字)
+    
+    pass
+

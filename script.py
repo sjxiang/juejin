@@ -22,8 +22,19 @@ def test_insert_user():
         logger.info("注册失败, {}".format(response['message']))
         
 
+from utils.common import validate_password
+
+
+def test_validate_password():
+    """
+    测试 validate_password 函数
+    """
+    assert validate_password("Abc@12345") == True, "密码符合要求"
+    print("测试通过")
+        
+
 def test_find_user():
-    email = 'gua@vip.cn'
+    email = 'gua@vip.c'
     
     response = User.query_user_by_email(email)
     
@@ -131,11 +142,13 @@ def test_mod_drafted():
 
 def test_script():
     # test_insert_user()
-    # test_find_user()
+    test_find_user()
     # test_find_latest_article()
-    test_find_recommend_article()
+    # test_find_recommend_article()
     # test_add_article()
     # test_mod_drafted()
+    
+    test_validate_password()
 
 
 if __name__ == '__main__':
