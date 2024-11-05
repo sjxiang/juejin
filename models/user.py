@@ -22,10 +22,10 @@ class User(Base):
         try:
             db_session.add(cls(**kwargs))
             db_session.commit()
-            return {'code': ErrNo.OK.value,'message':'success'}
+            return {'code': 0}
         except exc.SQLAlchemyError as e:
             logger.error(f'new user error, {e}')
-            return {'code': ErrNo.DATABASE_ERROR.value,'message': 'database error'}        
+            return {'code': 1}        
 
     
     @classmethod
@@ -94,25 +94,14 @@ class User(Base):
     def query_user_by_email(cls, email):
         """
         通过邮箱, 查找用户
-        
-        SELECT 
-            *
-        FROM 
-            `user`
-        WHERE 
-            email = 'EMAIL'
-        """
-        
+        SELECT * FROM `user` WHERE email = ?;
+        """   
         try:
-            result = db_session.query(User).filter_by(email=email).one_or_none()
-            
-            if result is not None:
-                return {'code': ErrNo.OK.value,'message':'success', 'data': result}
-            else:
-                return {'code': ErrNo.DATABASE_RECORD_NOT_FOUND.value,'message': 'record not exists'}        
+            record = db_session.query(User).filter_by(email=email).one_or_none()
+            return {'code': 0, 'data': record}
         except exc.SQLAlchemyError as e:
             logger.error('query_user_by_email error {}, email, {}'.format(e, email))
-            return {'code': ErrNo.DATABASE_ERROR.value,'message': 'database error'}
+            return {'code': 1, 'message': 'database error'}
     
     
     @classmethod

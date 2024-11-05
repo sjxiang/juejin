@@ -8,7 +8,9 @@ class HttpCode(object):
     server_error = 500
     auth_error = 401
     db_error = 1001
-
+    record_already_exists = 1002
+    record_not_exists = 1003
+    
 
 def response(code, msg, data):
     return jsonify(code=code, msg=msg, data=data or {})

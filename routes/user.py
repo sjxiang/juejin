@@ -6,7 +6,8 @@ from utils.log import logger
 from utils.errno import ErrNo 
 from utils.common import random_code, send_email, random_str, validate_password, hashed_password
 from models.user import User
-from utils.serializer import HttpCode
+from utils.serializer import HttpCode, success, error
+
 
 
 import json
@@ -64,36 +65,41 @@ def login():
 
 @main.route("/register", methods=['POST'])
 def register():
-    data = request.form
+    data = json.loads(request.data)
     
     email = data.get("email")
     password = data.get("password")
     confirmed_password = data.get("confirmed_password")
     captcha_code = data.get("captcha_code")
-
-    print('到这里')
     
     if not re.match(".+@.+\..+", email):
-        return {"code": ErrNo.PARAMS_INVALID, "message": "邮箱格式错误"}    
-    if email is None or password is None:
-        return {"code": ErrNo.PARAMS_INVALID, "message": "用户名或密码不能为空"}
+        return error(code=HttpCode.params_error, msg="邮箱格式错误")
+    if not all([email, password, confirmed_password, captcha_code]):
+        return error(code=HttpCode.params_error, msg='参数不能为空')
     if password != confirmed_password:
-        return {"code": ErrNo.PARAMS_INVALID, "message": "两次密码不一致"}
-    if captcha_code!= session.get("cc"):
-        return {"code": ErrNo.PARAMS_INVALID, "message": "验证码错误"}
+        return error(code=HttpCode.params_error, msg='两次密码不一致')
+    if captcha_code != session.get("captcha_code"):
+        return error(code=HttpCode.params_error, msg='验证码错误')
     if validate_password(password):
-        return {"code": ErrNo.PARAMS_INVALID, "message": "密码不合格,  密码必须是 8-16 位的英文字母、数字、字符组合(不能是纯数字)"}
+        return error(code=HttpCode.params_error, msg='密码不合格')
 
-
-    if User.query_user_by_email(email=email) is not None:
-        return {"code": ErrNo.RECORD_ALREADY_EXISTS, "message": "用户已存在"}
+    response = User.query_user_by_email(email=email)
+    if response['code'] == 1:
+        return error(code=HttpCode.db_error, msg='数据库繁忙, 请稍后再试')
+    else:
+        if response['data'] is not None:
+            return error(code=HttpCode.record_already_exists, msg='用户已存在')
     
     new_user = {
         "email": email,
         "nickname": email.split("@")[0],
         "password": hashed_password(password)
     }
-    return User.new(**new_user)
+    response = User.new(**new_user)
+    if response['code'] == 1:
+        return error(code=HttpCode.db_error, msg='数据库繁忙, 请稍后再试')
+    else:
+        return success(msg='注册成功')
 
 
 
