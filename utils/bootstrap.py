@@ -2,6 +2,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.ext.declarative import declarative_base
 
+import redis
+
 from utils.config import config
 from utils.consts import env
 
@@ -29,3 +31,16 @@ def db_connect():
     return db_session, Base, engine
 
 
+def redis_connect():
+    
+    """ 连接 redis """
+    
+    cfg = config[env]
+
+    redis_host = cfg.REDIS_HOST
+    redis_port = cfg.REDIS_PORT
+    redis_db = cfg.REDIS_DB
+
+    pool = redis.ConnectionPool(host=redis_host, port=redis_port, db=redis_db, decode_responses=True)
+    
+    return redis.Redis(connection_pool=pool)

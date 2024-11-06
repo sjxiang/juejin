@@ -25,7 +25,8 @@ class Config(object):
     
     # 缓存
     REDIS_HOST = "127.0.0.1"
-    REDIS_PORT = 16379
+    REDIS_PORT = 6379
+    REDIS_DB = 0
 
 
     # 日志
@@ -64,18 +65,6 @@ config = {
     'testing': TestingConfig,
     'pro': ProductionConfig,
 }
-
-
-
-"""
-session
-"""
-
-PERMANENT_SESSION_LIFETIME = timedelta(days=7)
-
-SESSION_TYPE = "filesystem" # 默认使用文件系统来保存会话
-SESSION_PERMANENT = False  # 会话是否持久化
-SESSION_USE_SIGNER = True  # 是否对发送到浏览器上 session 的 cookie 值进行加密
 
 
 

@@ -4,29 +4,19 @@ from flask import (
 )
 from sqlalchemy import exc
 
+from utils.bootstrap import redis_connect
 from utils.log import logger
-from utils.common import random_code, send_email, random_str, validate_password, hashed_password
+from utils.common import random_code, send_email, validate_password, hashed_password
 from models.user import User
 from utils.serializer import HttpCode, success, error
 import json
 import re
 
 
+# 连接 redis
+rds = redis_connect()
+
 main = Blueprint('user', __name__)
-
-
-# 获取图形验证码
-@main.route("/captcha-code", methods=['GET'])
-def captcha_code():
-    
-    logger.info('访问 captcha-code 页面')
-    
-    cc = random_code()
-    
-    logger.info('图形验证码: {}'.format(cc))
-
-    return render_template("email.html", cc=cc)   
-
 
 
 # 获取短信验证码 <邮箱替代短信>
@@ -39,10 +29,11 @@ def sms_code():
         return error(code=HttpCode.params_error, msg="邮箱格式错误")
     
     # 生成邮箱验证码的随机字符串
-    cc = random_str()
+    cc = random_code()
     
-    # 将邮箱验证码存入session
-    session['sc'] = cc
+    # 将邮箱验证码存入 redis 
+    prefix = 'email_code_'
+    rds.set(prefix+to_email, cc, ex=60*10)
     
     # 发送邮件
     logger.info('邮箱验证码: {}'.format(cc))
@@ -70,11 +61,14 @@ def register():
     email = data.get("email")
     password = data.get("password")
     confirmed_password = data.get("confirmed_password")
-    
+    captcha_code = data.get("captcha")
+        
     if not re.match(".+@.+\..+", email):
         return error(code=HttpCode.params_error, msg="邮箱格式错误")
     if not all([email, password, confirmed_password, captcha_code]):
         return error(code=HttpCode.params_error, msg='参数不能为空')
+    if captcha_code!= rds.get('captcha_code'+email):
+        return error(code=HttpCode.params_error, msg='验证码错误')
     if password != confirmed_password:
         return error(code=HttpCode.params_error, msg='两次密码不一致')
     if validate_password(password):

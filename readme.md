@@ -5,6 +5,19 @@
 
 <!-- 
 
+
+docker exec -it db sh
+mysql --host=127.0.0.1 --port=3306 --user=root --password=my-secret-pw
+
+docker exec -it cache sh
+redis-cli
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
+
+keys *
+get xxx
+
+
+
 个人中心
 注册
 登录

@@ -1,14 +1,18 @@
 from flask import (
-    Blueprint, request, session
+    Blueprint, request
 )
 from sqlalchemy import exc
 
 from utils.log import logger
-from utils.common import random_code, send_email, random_str, validate_password, hashed_password
 from utils.serializer import HttpCode, success, error
 
 from models.article import Article 
+from models.user import User
+
 import json
+
+# 全局变量
+from utils.consts import user_id as admin
 
 
 main = Blueprint('article', __name__)
@@ -25,8 +29,8 @@ def new_article():
     title = data.get("title")
     content = data.get("content")
     tag = data.get("tag")
-    user_id = data.get("user_id")
-    topic = data.get("topic")
+    topic = data.get("topic")    
+    user_id = admin  # 全局变量
         
     try:
         item = Article.add_article(title=title, content=content, tag=tag, user_id=user_id, topic=topic)    
@@ -135,4 +139,38 @@ def recommend():
     except exc.SQLAlchemyError as e:
         logger.error('query_recommend_article_by_page error, {}'.format(e))
         return error(code=HttpCode.db_error, msg="查询最新文章失败")
+    
+
+# 获取文章详情
+# 127.0.0.1:9000/article/detail?_id=23
+@main.route("/detail", methods=['GET'])
+def detail():
+    # logger.info('访问 detail 页面')
+
+    article_id = request.args.get("_id")
+    
+    try:
+        # 获取文章所有信息
+        article = Article.query_article_by_id(article_id)
+        if article is None:
+            return error(code=HttpCode.params_error, msg="文章不存在")
+        
+        # 获取文章作者信息
+        user = User.query_user_by_userid(article.user_id)
+        if user is None:
+            return error(code=HttpCode.params_error, msg="作者不存在")
+        
+        # 获取文章评论信息
+        
+        # 获取文章点赞信息
+        
+        # 获取我是否点赞了这个文章
+        is_fav = 1
+
+        return success(msg="获取文章详情成功", data={'article': article, 'user': user, 'is_fav': is_fav})
+    
+    except exc.SQLAlchemyError as e:
+        logger.error('query_article_by_id error, {}'.format(e))
+        return error(code=HttpCode.db_error, msg="查询文章详情失败")
+        
     

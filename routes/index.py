@@ -1,14 +1,12 @@
 from flask import (
-    Blueprint, request
+    Blueprint, render_template
 )
 from utils.log import logger
-from models.article import Article
-from sqlalchemy import exc
-from utils.serializer import HttpCode, success, error
+
 
 main = Blueprint('index', __name__)
 
-
+# 首页
 # '127.0.0.1:9000/index'
 @main.route("/index", methods=['GET'])
 def index():
