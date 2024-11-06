@@ -7,8 +7,7 @@ url = "http://127.0.0.1:9000/user/register"
 payload = {
     "email": "your_email@example.com",
     "password": "123456",
-    "confirmed_password": "123456",
-    "captcha_code": "tbrcz1"  # 我改, 你就重启下服务, 搞鸡毛啊
+    "confirmed_password": "123456"
 }
 
 headers = {

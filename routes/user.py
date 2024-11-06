@@ -1,15 +1,13 @@
 
 from flask import (
-    Blueprint, request, render_template, session, jsonify
+    Blueprint, request, render_template, session
 )
+from sqlalchemy import exc
+
 from utils.log import logger
-from utils.errno import ErrNo 
 from utils.common import random_code, send_email, random_str, validate_password, hashed_password
 from models.user import User
 from utils.serializer import HttpCode, success, error
-
-
-
 import json
 import re
 
@@ -20,10 +18,10 @@ main = Blueprint('user', __name__)
 # 获取图形验证码
 @main.route("/captcha-code", methods=['GET'])
 def captcha_code():
+    
     logger.info('访问 captcha-code 页面')
     
     cc = random_code()
-    session['captcha_code'] = cc
     
     logger.info('图形验证码: {}'.format(cc))
 
@@ -38,8 +36,7 @@ def sms_code():
     
     # 简单的邮箱格式验证
     if not re.match(".+@.+\..+", to_email):
-        
-        return {"code": ErrNo.PARAMS_INVALID, "message": "邮箱格式错误"}
+        return error(code=HttpCode.params_error, msg="邮箱格式错误")
     
     # 生成邮箱验证码的随机字符串
     cc = random_str()
@@ -49,9 +46,12 @@ def sms_code():
     
     # 发送邮件
     logger.info('邮箱验证码: {}'.format(cc))
-    response = send_email(to_email, "注册", cc)
-    return response
-
+    
+    is_success = send_email(to_email, "注册", cc)
+    if is_success:
+        return success(msg="发送成功")
+    else:
+        return error(code=HttpCode.server_error, msg="发送失败")
 
 
 @main.route("/login", methods=['GET', 'POST'])
@@ -70,7 +70,6 @@ def register():
     email = data.get("email")
     password = data.get("password")
     confirmed_password = data.get("confirmed_password")
-    captcha_code = data.get("captcha_code")
     
     if not re.match(".+@.+\..+", email):
         return error(code=HttpCode.params_error, msg="邮箱格式错误")
@@ -78,31 +77,29 @@ def register():
         return error(code=HttpCode.params_error, msg='参数不能为空')
     if password != confirmed_password:
         return error(code=HttpCode.params_error, msg='两次密码不一致')
-    if captcha_code != session.get("captcha_code"):
-        return error(code=HttpCode.params_error, msg='验证码错误')
     if validate_password(password):
         return error(code=HttpCode.params_error, msg='密码不合格')
 
-    response = User.query_user_by_email(email=email)
-    if response['code'] == 1:
-        return error(code=HttpCode.db_error, msg='数据库繁忙, 请稍后再试')
-    else:
-        if response['data'] is not None:
-            return error(code=HttpCode.record_already_exists, msg='用户已存在')
     
-    new_user = {
-        "email": email,
-        "nickname": email.split("@")[0],
-        "password": hashed_password(password)
-    }
-    response = User.new(**new_user)
-    if response['code'] == 1:
-        return error(code=HttpCode.db_error, msg='数据库繁忙, 请稍后再试')
-    else:
-        return success(msg='注册成功')
+    try:
+        item = User.query_user_by_email(email=email)
+    
+        if item is None:
+            new_user = {
+                "email": email,
+                "nickname": email.split("@")[0],
+                "password": hashed_password(password)
+            }
 
-
-
+            User.new(**new_user)
+            return success(msg='注册成功')
+        else:
+            return error(code=HttpCode.record_already_exists, msg='用户已存在')
+        
+    except exc.SQLAlchemyError as e:
+        logger.error('query_user_by_email error {}, email, {}'.format(e, email))
+        return error(code=HttpCode.db_error, msg='注册失败')
+    
 
 # @user.route("/login",methods=["post"])
 # def login():

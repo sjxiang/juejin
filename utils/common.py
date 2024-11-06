@@ -89,7 +89,6 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from utils.log import logger
-from utils.errno import ErrNo
 
  
 def send_email(to_email, subject, cc):
@@ -118,10 +117,10 @@ def send_email(to_email, subject, cc):
         m.login(from_email, license)
         m.sendmail(from_email, to_email, msg.as_string())
         m.close()        
-        return {"code": ErrNo.OK, "message": "邮件发送成功"}
+        return True
     except Exception as e:
         logger.error("邮件发送失败, {}".format(e))
-        return {"code": ErrNo.SEND_EMAIL_ERROR, "message": "邮件发送失败"}
+        return False
     finally:
         m.close()
 
@@ -139,7 +138,3 @@ def validate_password(password):
     if re.match(pattern, password):
         return True
     return False
-
-
-if __name__ == '__main__':
-    test_validate_password()

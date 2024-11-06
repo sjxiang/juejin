@@ -1,11 +1,6 @@
-from sqlalchemy import Table, exc, or_
-from sqlalchemy.orm import Session
+from sqlalchemy import Table
 
 from utils.bootstrap import db_connect
-from utils.log import logger
-from utils.errno import ErrNo
-from utils.bootstrap import db_connect
-
 
 db_session, Base, engine = db_connect()
 
@@ -19,13 +14,8 @@ class User(Base):
         """
         创建一个新用户
         """
-        try:
-            db_session.add(cls(**kwargs))
-            db_session.commit()
-            return {'code': 0}
-        except exc.SQLAlchemyError as e:
-            logger.error(f'new user error, {e}')
-            return {'code': 1}        
+        db_session.add(cls(**kwargs))
+        db_session.commit()
 
     
     @classmethod
@@ -47,24 +37,15 @@ class User(Base):
         """
         删除用户
         """
-        try:
-            db_session.query(User).filter_by(id=user_id).delete()
-            db_session.commit()
-        except exc.SQLAlchemyError as e:
-            logger.error(f'delete user error, {e}')
-            return {'code': ErrNo.DATABASE_ERROR.value,'message': 'database error'}
-
+        db_session.query(User).filter_by(id=user_id).delete()
+        db_session.commit()
+    
     
     @classmethod
     def add_user(cls, email, password):
-        try:
-            db_session.add(cls(email=email, password=password))
-            db_session.commit()
-            return {'code': ErrNo.OK.value,'message':'success'}    
-        except exc.SQLAlchemyError as e:
-            logger.error(f'add_user error, {e}')
-            return {'code': ErrNo.DATABASE_ERROR.value,'message': 'database error'}
-    
+        db_session.add(cls(email=email, password=password))
+        db_session.commit()
+        
        
     @classmethod
     def mod_user(cls, user_id):
@@ -73,16 +54,13 @@ class User(Base):
     
     @classmethod
     def query_user_by_userid(cls, user_id):      
-        try:
-            result = db_session.query(User).filter_by(id=user_id).one_or_none()
+        
+        result = db_session.query(User).filter_by(id=user_id).one_or_none()
             
-            if result is not None:
-                return {'code': ErrNo.OK.value,'message':'success', 'data': result}
-            else:
-                return {'code': ErrNo.DATABASE_RECORD_NOT_FOUND.value,'message': 'record not exists'}
-        except exc.SQLAlchemyError as e:
-            logger.error(f'query_user_by_userid error, {e}')
-            return {'code': ErrNo.DATABASE_ERROR.value,'message': 'database error'}
+        if result is not None:
+            return result.to_dict()
+        else:
+            return None
 
         
     @classmethod
@@ -96,12 +74,12 @@ class User(Base):
         通过邮箱, 查找用户
         SELECT * FROM `user` WHERE email = ?;
         """   
-        try:
-            record = db_session.query(User).filter_by(email=email).one_or_none()
-            return {'code': 0, 'data': record}
-        except exc.SQLAlchemyError as e:
-            logger.error('query_user_by_email error {}, email, {}'.format(e, email))
-            return {'code': 1, 'message': 'database error'}
+        result = db_session.query(User).filter_by(email=email).one_or_none()
+
+        if result is not None:
+            return result.to_dict()
+        else:
+            return None
     
     
     @classmethod
@@ -120,18 +98,9 @@ class User(Base):
         修改密码
         """
         result = db_session.query(User).filter_by(id = user_id).one_or_none()
-            
-        if result is not None:
-            try:
-                result.password = new_password
-                db_session.commit()
-                return {'code': ErrNo.OK.value,'message':'success'}
-            except exc.SQLAlchemyError as e:
-                logger.error('mod_password error, {}'.format(e))
-                return {'code': ErrNo.DATABASE_ERROR.value,'message': 'database error'}
-        else:
-            return {'code': ErrNo.DATABASE_RECORD_NOT_FOUND.value, 'message': 'record not exists'}
-        
+        result.password = new_password
+        db_session.commit()
+                
         
     def to_dict(self):
         

@@ -9,41 +9,11 @@ from utils.serializer import HttpCode, success, error
 main = Blueprint('index', __name__)
 
 
-# '127.0.0.1:9000/index?page_num=1&type=latest&topic=fe'
+# '127.0.0.1:9000/index'
 @main.route("/index", methods=['GET'])
 def index():
     logger.info('访问 index 页面')
-    
-    page_num = request.args.get("page_num")
-    type = request.args.get("type")
-    topic = request.args.get("topic")
-   
-    if page_num is None:
-        page_num = 1
-    else:
-        page_num = int(page_num)  
-
-    if type is None:
-        type ='recommend'
-    
-    if topic is None:
-        topic = 'fe'
-    
-    
-    try:     
-        if type == "recommend":
-            total_count, total_pages, items = Article.query_recommend_article_by_page(page_num, topic)
-            return success(
-                msg="success", data={'total_count': total_count, 'total_pages': total_pages, 'items': items})
-
-        else:
-            total_count, total_pages, items = Article.query_latest_article_by_page(page_num, topic)
-            return success(
-                msg="success", data={'total_count': total_count, 'total_pages': total_pages, 'items': items})
-
-    except exc.SQLAlchemyError as e:
-        logger.error('query_{}_article_by_page error, {}'.format(type, e))
-        return error(code=HttpCode.db_error, msg="查询最新文章失败")
+    return render_template("index.html")
 
 
 

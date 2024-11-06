@@ -1,5 +1,4 @@
-from sqlalchemy import Table, exc, or_
-from sqlalchemy.orm import Session
+from sqlalchemy import Table, or_
 from datetime import datetime
 from models.user import User
 from utils.bootstrap import db_connect
@@ -55,7 +54,8 @@ class Article(Base):
         skip = (page_num - 1) * page_size
             
         result = db_session.query(Article, User.nickname).join(User, User.id == Article.user_id).filter(Article.topic == topic, Article.is_drafted == 1).order_by(Article.browse_num.desc()).limit(page_size).offset(skip).all()
-        items = cls.convert(result)
+        items = cls.build_article_list_from_rows(result)
+        
         return total_count, total_pages, items
     
             
@@ -72,7 +72,7 @@ class Article(Base):
 
                 
         result = db_session.query(Article, User.nickname).join(User, User.id == Article.user_id).filter(Article.topic == topic, Article.is_drafted == 1).order_by(Article.created_at.desc()).limit(page_size).offset(start).all()
-        items = cls.convert(result)
+        items = cls.build_article_list_from_rows(result)
         return total_count, total_pages, items
 
 
@@ -83,15 +83,17 @@ class Article(Base):
         """
         page_num = int(page_num)
         page_size = 10
+        
         total_count = db_session.query(Article).count()
         total_pages = (total_count + page_size - 1) // page_size
+        
         skip = (page_num - 1) * page_size
         
         condition_1 = or_(Article.title.like("%"+keyword+"%"), Article.content.like("%"+keyword+"%"))
 
         result = db_session.query(Article, User.nickname).join(User, User.id == Article.user_id).filter(condition_1, Article.is_drafted == 1).order_by(Article.browse_num.desc()).limit(page_size).offset(skip).all()
-        items = cls.convert(result)
-    
+        items = cls.build_article_list_from_rows(result)
+        
         return total_count, total_pages, items
     
         
@@ -106,6 +108,7 @@ class Article(Base):
         else:
             return result.to_dict()
 
+
         
     @classmethod
     def mod_browse_num(cls, article_id, num):
@@ -114,7 +117,10 @@ class Article(Base):
         
         UPDATE `article` SET `browse_num` = '100' WHERE `id` = 24;
         """
-        pass
+        result = db_session.query(Article).filter_by(id=article_id).one_or_none()
+        result.browse_num = num
+        db_session.commit()
+        
     
     
     @classmethod
@@ -130,9 +136,11 @@ class Article(Base):
         
     
     @staticmethod
-    def convert(result):
+    def build_article_list_from_rows(result):
         """
-        把 sqlalchemy 数据, 转换成 dict 类型
+        1. 遍历 <class 'list'> 中的 <class'sqlalchemy.engine.row.Row'>
+        2. 把 <class'sqlalchemy.engine.row.Row'> 转换成 <class'models.article.Article'>
+        3. 把 <class'models.article.Article'> 转换成 <class'dict'>
         """
         ll = []
         
@@ -140,22 +148,9 @@ class Article(Base):
             ll.append(item[0].to_dict())
 
         return ll
+        
     
-
-
     def to_dict(self):
-        
-        # 默认是草稿
-        is_drafted = True
-        
-        if self.is_drafted == 1:
-            is_drafted = False
-
-        # 默认是原创
-        is_original = True
-        
-        if self.is_original == 1:
-            is_original = False
         
         topics = {
             'fe': '前端',
@@ -172,8 +167,8 @@ class Article(Base):
             '内容': self.content,
             '浏览量': self.browse_num,
             '标签': self.tag.split(','),
-            '草稿': is_drafted,
-            '原创': is_original,
+            '草稿': self.is_drafted == 0,
+            '原创': self.is_original == 0,
             '创建日期': self.created_at.strftime("%Y-%m-%d %H:%M:%S"),
             '更新日期': self.updated_at.strftime("%Y-%m-%d %H:%M:%S"),
         }    

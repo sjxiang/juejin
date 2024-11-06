@@ -7,6 +7,7 @@ class HttpCode(object):
     params_error = 400
     server_error = 500
     auth_error = 401
+    
     db_error = 1001
     record_already_exists = 1002
     record_not_exists = 1003
