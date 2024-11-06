@@ -1,13 +1,8 @@
-
 from sqlalchemy import Table, exc, or_
 from sqlalchemy.orm import Session
 from datetime import datetime
-
-from utils.bootstrap import db_connect
-from utils.log import logger
-from utils.errno import ErrNo
-
 from models.user import User
+from utils.bootstrap import db_connect
 
 
 db_session, Base, engine = db_connect()
@@ -15,10 +10,6 @@ db_session, Base, engine = db_connect()
 
 class Article(Base):
     __table__ = Table("article", Base.metadata, autoload_with=engine)
-
-    @classmethod
-    def batch_add_article(cls, **kwargs):
-        pass
     
         
     @classmethod
@@ -32,36 +23,28 @@ class Article(Base):
             ('fe', 'vue', 'more...', 'fe,interview', 2333, 0, 0, 0, '2023-05-24 15:23:54', '2023-05-24 15:23:54', 0);
         
         """
-        record = cls(
-                    topic=topic, 
-                    title=title, 
-                    content=content, 
-                    tag=tag, 
-                    browse_num=0,
-                    user_id=user_id, 
-                    is_drafted=0, 
-                    is_original=0, 
-                    created_at=datetime.now(), 
-                    updated_at=datetime.now(), 
-                    status=0,
-                )
-        try:
-            db_session.add(record)
-            db_session.commit()
-            return {'code': ErrNo.OK.value,'message':'success'}    
-        except exc.SQLAlchemyError as e:
-            logger.error(f'add_article error, {e}')
-            return {'code': ErrNo.DATABASE_ERROR.value,'message': 'database error'}
-        
+        record = cls(topic=topic, title=title, content=content, tag=tag, browse_num=0, user_id=user_id, is_drafted=0, is_original=0, created_at=datetime.now(), updated_at=datetime.now(), status=0)
+        db_session.add(record)
+        db_session.commit()
+        return record.to_dict()
+    
+    
+    @classmethod
+    def batch_add_article(cls, **kwargs):
+        """
+        批量添加文章
+        """
+        pass
+    
     
     @classmethod
     def query_recommend_article_by_page(cls, page_num, topic):
         """
-        分页查询<推荐>文章, 但是不要草稿
+        <推荐>, 分页查询文章, 但是不要草稿
         """
         
         # 当前第几页, 默认第1页
-        page_num = int(page_num)
+        page_num = 1 if page_num <= 0 else int(page_num)
         # 每页显示多少条记录
         page_size = 10
         # 总的记录数
@@ -70,49 +53,34 @@ class Article(Base):
         total_pages = (total_count + page_size - 1) // page_size
         
         skip = (page_num - 1) * page_size
-        
-        try:        
-            result = db_session.query(Article, User.nickname).join(User, User.id == Article.user_id).filter(Article.topic == topic, Article.is_drafted == 1).order_by(Article.browse_num.desc()).limit(page_size).offset(skip).all()
             
-            resp = []
-            for item in result:
-                resp.append(item[0].to_dict())
-            
-            return {'code': ErrNo.OK.value, 'message': 'success',  'total_count': total_count, 'total_pages': total_pages, 'data': resp}
-        except exc.SQLAlchemyError as e:
-            logger.error('query_latest_article_by_page error, {}'.format(e))
-            return {'code': ErrNo.DATABASE_ERROR.value, 'message': 'database error'}
-            
+        result = db_session.query(Article, User.nickname).join(User, User.id == Article.user_id).filter(Article.topic == topic, Article.is_drafted == 1).order_by(Article.browse_num.desc()).limit(page_size).offset(skip).all()
+        items = cls.convert(result)
+        return total_count, total_pages, items
+    
             
     @classmethod
-    def query_latest_article_by_page(cls, page, topic):
+    def query_latest_article_by_page(cls, page_num, topic):
         """
-        分页查询<最新>文章, 但是不要草稿
+        <最新>, 分页查询文章, 但是不要草稿
         """
         page_num = int(page_num)
         page_size = 10
         total_count = db_session.query(Article).count()
         total_pages = (total_count + page_size - 1) // page_size
-        start = (page - 1) * page_size
+        start = (page_num - 1) * page_size
 
-        try:        
-            result = db_session.query(Article, User.nickname).join(User, User.id == Article.user_id).filter(Article.topic == topic, Article.is_drafted == 1).order_by(Article.created_at.desc()).limit(page_size).offset(start).all()
-            
-            resp = []
-            for item in result:
-                resp.append(item[0].to_dict())
-            return {'code': ErrNo.OK.value, 'message': 'success',  'total_count': total_count, 'total_pages': total_pages, 'data': resp}
-        except exc.SQLAlchemyError as e:
-            logger.error('query_recommend_article_by_page error, {}'.format(e))
-            return {'code': ErrNo.DATABASE_ERROR.value, 'message': 'database error'}
-        
+                
+        result = db_session.query(Article, User.nickname).join(User, User.id == Article.user_id).filter(Article.topic == topic, Article.is_drafted == 1).order_by(Article.created_at.desc()).limit(page_size).offset(start).all()
+        items = cls.convert(result)
+        return total_count, total_pages, items
+
 
     @classmethod
     def query_article_by_field(cls, page_num, keyword):
         """
         根据关键词, 分页查询文章, 但是不要草稿
         """
-        
         page_num = int(page_num)
         page_size = 10
         total_count = db_session.query(Article).count()
@@ -121,19 +89,24 @@ class Article(Base):
         
         condition_1 = or_(Article.title.like("%"+keyword+"%"), Article.content.like("%"+keyword+"%"))
 
-        try:        
-            result = db_session.query(Article, User.nickname).join(User, User.id == Article.user_id).filter(condition_1, Article.is_drafted == 1).order_by(Article.browse_num.desc()).limit(page_size).offset(skip).all()
-            
-            resp = []
-            for item in result:
-                resp.append(item[0].to_dict())
-            
-            return {'code': ErrNo.OK.value, 'message': 'success',  'total_count': total_count, 'total_pages': total_pages, 'data': resp}
-        except exc.SQLAlchemyError as e:
-            logger.error('query_article_by_field error, {}'.format(e))
-            return {'code': ErrNo.DATABASE_ERROR.value, 'message': 'database error'}
+        result = db_session.query(Article, User.nickname).join(User, User.id == Article.user_id).filter(condition_1, Article.is_drafted == 1).order_by(Article.browse_num.desc()).limit(page_size).offset(skip).all()
+        items = cls.convert(result)
+    
+        return total_count, total_pages, items
+    
         
+    @classmethod
+    def query_article_by_id(cls, article_id):
+        """
+        根据文章 id, 查询文章详情
+        """
+        result = db_session.query(Article).filter_by(id=article_id).one_or_none()
+        if result is None:
+            return None
+        else:
+            return result.to_dict()
 
+        
     @classmethod
     def mod_browse_num(cls, article_id, num):
         """
@@ -152,18 +125,22 @@ class Article(Base):
         UPDATE article SET is_drafted='1' WHERE article.id = 23; 
         """    
         result = db_session.query(Article).filter_by(id=article_id).one_or_none()
+        result.is_drafted = 1
+        db_session.commit()
+        
+    
+    @staticmethod
+    def convert(result):
+        """
+        把 sqlalchemy 数据, 转换成 dict 类型
+        """
+        ll = []
+        
+        for item in result:
+            ll.append(item[0].to_dict())
 
-        if result is not None:
-            try:
-                result.is_drafted = 1
-                db_session.commit()
-                return {'code': ErrNo.OK.value, 'message': 'success'}
-            except exc.SQLAlchemyError as e:
-                logger.error('mod_drafted error, {}'.format(e))
-                return {'code': ErrNo.DATABASE_ERROR.value, 'message': 'database error'}
-        else:
-            logger.error('article is not exists')
-            return {'code': ErrNo.DATABASE_RECORD_NOT_FOUND.value,'message':'record not exists'}
+        return ll
+    
 
 
     def to_dict(self):

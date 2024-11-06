@@ -142,7 +142,7 @@ def test_mod_drafted():
 
 def test_script():
     # test_insert_user()
-    test_find_user()
+    # test_find_user()
     # test_find_latest_article()
     # test_find_recommend_article()
     # test_add_article()
@@ -152,4 +152,37 @@ def test_script():
 
 
 if __name__ == '__main__':
-    test_script()    
+    from sqlalchemy import Table, exc, or_
+    from sqlalchemy.orm import Session
+    
+    from models.user import User
+    from models.article import Article
+    
+    from utils.log import logger
+    from utils.bootstrap import db_connect
+    
+    
+    page_size = 10
+    skip = 0
+    topic = 'fe'
+
+    db_session, Base, engine = db_connect()
+    result = db_session.query(Article, User.nickname).join(User, User.id == Article.user_id).filter(Article.topic == topic, Article.is_drafted == 1).order_by(Article.browse_num.desc()).limit(page_size).offset(skip).all()
+    
+    for row in result:
+        for item in row.__dict__.items():
+            print(item)
+            
+        # print(row[0].__dict__)
+        # # print(row.__dict__.items())
+
+    # for item in result:
+    #     print(item[0].to_dict())
+        
+
+            
+    
+    # test_script()    
+
+
+

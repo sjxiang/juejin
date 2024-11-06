@@ -3,56 +3,48 @@ from flask import (
 )
 from utils.log import logger
 from models.article import Article
-
+from sqlalchemy import exc
+from utils.serializer import HttpCode, success, error
 
 main = Blueprint('index', __name__)
 
 
-# '127.0.0.1:9000/index?page=1&type=latest&topic=fe'
+# '127.0.0.1:9000/index?page_num=1&type=latest&topic=fe'
 @main.route("/index", methods=['GET'])
 def index():
     logger.info('访问 index 页面')
     
-    raw_page = request.args.get("page")
+    page_num = request.args.get("page_num")
     type = request.args.get("type")
     topic = request.args.get("topic")
    
-    
-    page = int(raw_page)
-    
-    if raw_page is None or (page < 1):
-        page = 1
-    
-    if topic is None:
-        topic = 'fe'
+    if page_num is None:
+        page_num = 1
+    else:
+        page_num = int(page_num)  
+
     if type is None:
         type ='recommend'
     
+    if topic is None:
+        topic = 'fe'
     
-    if type == "recommend":
-        response = Article.query_recommend_article_by_page(page, topic)
-        return response
-    else:
-        response = Article.query_latest_article_by_page(page, topic)
-        return response
+    
+    try:     
+        if type == "recommend":
+            total_count, total_pages, items = Article.query_recommend_article_by_page(page_num, topic)
+            return success(
+                msg="success", data={'total_count': total_count, 'total_pages': total_pages, 'items': items})
 
+        else:
+            total_count, total_pages, items = Article.query_latest_article_by_page(page_num, topic)
+            return success(
+                msg="success", data={'total_count': total_count, 'total_pages': total_pages, 'items': items})
 
-# '127.0.0.1:9000/search?page=1&keyword=vue'
-@main.route("/search", methods=['GET'])
-def search():
-    
-    logger.info('访问 search 页面')
-    
-    raw_page = request.args.get("page")
-    keyword = request.args.get("keyword")
-    
-    page = int(raw_page)
-    
-    if raw_page is None or (page < 1):
-        page = 1
-        
-    response = Article.query_article_by_field(page, keyword=keyword)
-    return response
+    except exc.SQLAlchemyError as e:
+        logger.error('query_{}_article_by_page error, {}'.format(type, e))
+        return error(code=HttpCode.db_error, msg="查询最新文章失败")
+
 
 
 """
