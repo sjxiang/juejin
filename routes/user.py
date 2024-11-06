@@ -32,17 +32,19 @@ def sms_code():
     cc = random_code()
     
     # 将邮箱验证码存入 redis 
-    prefix = 'email_code_'
+    prefix = 'captcha_code_'
     rds.set(prefix+to_email, cc, ex=60*10)
     
     # 发送邮件
     logger.info('邮箱验证码: {}'.format(cc))
     
-    is_success = send_email(to_email, "注册", cc)
-    if is_success:
-        return success(msg="发送成功")
-    else:
-        return error(code=HttpCode.server_error, msg="发送失败")
+    return success(msg="发送成功")
+
+    # is_success = send_email(to_email, "注册", cc)
+    # if is_success:
+    #     return success(msg="发送成功")
+    # else:
+    #     return error(code=HttpCode.server_error, msg="发送失败")
 
 
 @main.route("/login", methods=['GET', 'POST'])
@@ -61,13 +63,13 @@ def register():
     email = data.get("email")
     password = data.get("password")
     confirmed_password = data.get("confirmed_password")
-    captcha_code = data.get("captcha")
+    captcha_code = data.get("captcha_code")
         
     if not re.match(".+@.+\..+", email):
         return error(code=HttpCode.params_error, msg="邮箱格式错误")
     if not all([email, password, confirmed_password, captcha_code]):
         return error(code=HttpCode.params_error, msg='参数不能为空')
-    if captcha_code!= rds.get('captcha_code'+email):
+    if captcha_code != rds.get('captcha_code_'+email):
         return error(code=HttpCode.params_error, msg='验证码错误')
     if password != confirmed_password:
         return error(code=HttpCode.params_error, msg='两次密码不一致')

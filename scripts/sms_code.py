@@ -2,13 +2,10 @@ import requests
 import json
 
 
-url = "http://127.0.0.1:9000/user/register"
+url = "http://127.0.0.1:9000/user/sms-code"
 
 payload = {
-    "email": "gua123@example.com",
-    "password": "123456",
-    "confirmed_password": "123456", 
-    "captcha_code": "cgsp4v"
+    "email": "gua123@example.com"
 }
 
 headers = {
